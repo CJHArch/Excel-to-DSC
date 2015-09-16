@@ -6,8 +6,7 @@
     xmlns:x="urn:schemas-microsoft-com:office:excel"
     xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
     xmlns:html="http://www.w3.org/TR/REC-html40" xmlns:xlink="http://www.w3.org/1999/xlink"
-    xmlns:ead="urn:isbn:1-931666-22-9" xmlns:mdc="http://mdc" xmlns="urn:isbn:1-931666-22-9"
-    xpath-default-namespace="urn:isbn:1-931666-22-9"
+    xmlns:ead="urn:isbn:1-931666-22-9" xmlns:mdc="http://mdc" 
     exclude-result-prefixes="xs math xd o x ss html xlink ead mdc" version="2.0">
     <xd:doc scope="stylesheet">
         <xd:desc>
@@ -18,13 +17,21 @@
         </xd:desc>
     </xd:doc>
 
-    <!-- to do:
-  
-  recheck how dates are parsed
+<!-- Modified by Kevin Schlottmann (KS) 8-28-2015 for use by CJH / partner EAD encoders -->
+<!-- KS Version 0.1 to staff for testing on 2015-09-02 -->
+<!-- KS removed default namespace xmlns="urn:isbn:1-931666-22-9" xpath-default-namespace="urn:isbn:1-931666-22-9" -->
+<!-- KS removed xml declaration in output -->   
+<!-- KS added component id from column 53 to id attribute -->
+<!-- KS commented out top-level EAD; this only outputs the dsc now.  Valid XML, but not valid EAD.  -->
+<!-- KS switched to numbered components NB only works down to c09 -->
+<!-- KS added bulk date expression derived from bulk year variables -->
+<!-- KS added style-based test for bold, italic, and underline, to address the issue where excel moves those to a style -->
 
-recheck how origination names are parsed (multiples AND font colors)
-        
-        update how physdesc mixed content is handled?  (allow genreform, dimensions???)
+  <!-- to do:
+  
+    recheck how dates are parsed
+    recheck how origination names are parsed (multiples AND font colors)
+    update how physdesc mixed content is handled?  (allow genreform, dimensions???)
           
         -->
     <xsl:key name="style-ids_match-for-color" match="ss:Style" use="@ss:ID"/>
@@ -43,7 +50,7 @@ recheck how origination names are parsed (multiples AND font colors)
         italics, underline, bold, etc. (all the emph options) are handled with the other font controls in Excel (e.g. bold -> emph render='bold', etc.)
       -->
 
-    <xsl:output method="xml" indent="yes" encoding="UTF-8"/>
+    <xsl:output method="xml" indent="yes" encoding="UTF-8" omit-xml-declaration="no"/>
     <xsl:strip-space elements="*"/>
     <!--   (1 - 55 / A - BC), columns in Excel
         1   - level number (no default..  requires at least one level-1 value; level-0 values are used for repeating values wihtin the same component; e.g. multiple unitdate expressions)
@@ -67,12 +74,12 @@ recheck how origination names are parsed (multiples AND font colors)
         17 - bulk day end
          
         18 - instance type (mixed materials by default) (did)
-        19 - container 1 type ("Box" is used if a value is present and the type is blank) (did)
+        19 - container 1 type ("box" is used if a value is present and the type is blank) (did)
         20 - container profile (did)
         21 - barcode (did)
         22 - container 1 value (did)
         
-        23 - container 2 type ("Folder" is used if a value is present and the type is blank) (did)
+        23 - container 2 type ("folder" is used if a value is present and the type is blank) (did)
         24 - container 2 value (did)
         25 - container 3 type ("Carton" is used if a value is present and the type is blank) (did)
         26 - container 3 value (did)
@@ -155,6 +162,7 @@ recheck how origination names are parsed (multiples AND font colors)
 
     <xsl:template match="ss:Workbook">
         <xsl:param name="workbook" select="." as="node()"/>
+
                 <xsl:choose>
             <xsl:when test="$ead-copy-filename ne ''">
                 <xsl:for-each select="document($ead-copy-filename)">
@@ -163,8 +171,9 @@ recheck how origination names are parsed (multiples AND font colors)
                     </xsl:apply-templates>
                 </xsl:for-each>
             </xsl:when>
-            <xsl:otherwise>    
-                <ead>
+            <xsl:otherwise>   
+<!-- KS commented out ead above the dsc level -->
+                <!--<ead>
                     <eadheader>
                         <eadid/>
                         <filedesc>
@@ -176,7 +185,7 @@ recheck how origination names are parsed (multiples AND font colors)
                     <archdesc level="collection">
                         <did>
                             <unitid>
-                                <!--AT can only accept 20 characters as the unitid, so that's exactly what the following will provide-->
+                                <!-\-AT can only accept 20 characters as the unitid, so that's exactly what the following will provide-\->
                                 <xsl:value-of
                                     select="concat('temp', substring(string(current-dateTime()), 1, 16))"
                                 />
@@ -189,14 +198,14 @@ recheck how origination names are parsed (multiples AND font colors)
                             <langmaterial>
                                 <language langcode="eng"/>
                             </langmaterial>
-                        </did>
+                        </did>-->
                         <!-- right now, this will only process a worksheet that has a name of "ContainerList".  if you need multiple DSCs, this would help,
                     but it might be better to change the predicate in the following XPath expression to [1], thereby ensuring a single DSC...  and if someone
                     renamed the first worksheet, it would still be processed-->
                         <xsl:apply-templates
                             select="ss:Worksheet[@ss:Name = 'ContainerList']/ss:Table"/>
-                    </archdesc>
-                </ead>
+                    <!--</archdesc>
+                </ead>-->
             </xsl:otherwise>
          </xsl:choose>
     </xsl:template>
@@ -217,7 +226,8 @@ recheck how origination names are parsed (multiples AND font colors)
     </xsl:template>
 
     <xsl:template match="ss:Table">
-        <dsc>
+        <dsc id="a23" type="combined">
+          <head>Container List</head>
             <xsl:apply-templates select="ss:Row[ss:Cell[1]/ss:Data eq '1']"/>
         </dsc>
     </xsl:template>
@@ -241,8 +251,14 @@ recheck how origination names are parsed (multiples AND font colors)
                     (: in other words, if the second column of the row is blank, then 'file' will be used as the @level type by default :)"
             as="xs:string"/>
 
-        <!-- should I add an option to use c elements OR ennumerated components?  this would be simple to do, but it would require a slightly longer style sheet.-->
-        <c>
+        <!-- KS added numbered components -->
+        
+        <xsl:variable name="c0x">
+            <xsl:text>c0</xsl:text>
+            <xsl:value-of select="$depth"/>
+        </xsl:variable>
+        <xsl:element name="{$c0x}">
+             
             <xsl:attribute name="level">
                 <xsl:value-of select="if ($level='accession') then 'otherlevel' else $level"/>
             </xsl:attribute>
@@ -251,15 +267,17 @@ recheck how origination names are parsed (multiples AND font colors)
                     <xsl:text>accesssion</xsl:text>
                 </xsl:attribute>
             </xsl:if>
-            <!-- this next part grabs the @id attribute from column 53, if there is one-->
-            <xsl:if
-                test="ss:Cell[ss:NamedCell/@ss:Name = 'component_id'][ss:Data/normalize-space()]">
-                <xsl:attribute name="id">
-                    <xsl:value-of
-                        select="ss:Cell[ss:NamedCell/@ss:Name = 'component_id'][1]/ss:Data/normalize-space()"
-                    />
-                </xsl:attribute>
-            </xsl:if>
+
+<!-- this next part grabs the @id attribute from column 53, if there is one-->
+<!--  KS commented out - we used the component id to put an id attribute in the unittitle        -->
+        <!--  <xsl:if
+            test="ss:Cell[ss:NamedCell/@ss:Name = 'component_id'][ss:Data/normalize-space()]">
+            <xsl:attribute name="id">
+              <xsl:value-of
+                select="ss:Cell[ss:NamedCell/@ss:Name = 'component_id'][1]/ss:Data/normalize-space()"
+              />
+            </xsl:attribute>
+          </xsl:if>-->
             <did>
                 <xsl:apply-templates mode="did"/>
                 <!-- this grabs all of the fields that we allow to repeat via "level 0" in the did node.-->
@@ -282,6 +300,7 @@ recheck how origination names are parsed (multiples AND font colors)
                 mode="non-did"/>
 
             <!-- there's no validation for this in excel, but it requires that the spreadsheet be ordered with 1, 2, 3, etc.... and never 1, 3, for example. -->
+
             <xsl:if test="$following-depth eq $depth + 1">
                 <xsl:apply-templates
                     select="
@@ -290,7 +309,7 @@ recheck how origination names are parsed (multiples AND font colors)
                         following-sibling::ss:Row[ss:Cell[1]/ss:Data[xs:integer(.) eq $depth]]/following-sibling::ss:Row"
                 />
             </xsl:if>
-        </c>
+        </xsl:element>
     </xsl:template>
 
 
@@ -347,7 +366,7 @@ recheck how origination names are parsed (multiples AND font colors)
             </xsl:when>
             <!-- in other words, column 5 isn't entirely blank (it has a Cell, but it doesn't have any Data), so we just use column 6 -->
             <!-- recheck this rule!!!! -->
-            <xsl:when test="$column-number eq 6 and ss:NamedCell[@ss:Name = 'year_begin']">
+            <xsl:when test="$column-number eq 6 and ss:NamedCell[@ss:name = 'year_begin']">
                 <xsl:call-template name="did-stuff">
                     <xsl:with-param name="column-number" select="$column-number" as="xs:integer"/>
                     <xsl:with-param name="style-id" select="$style-id"/>
@@ -386,18 +405,109 @@ recheck how origination names are parsed (multiples AND font colors)
         <xsl:param name="style-id"/>
         <xsl:param name="column-number" as="xs:integer"/>
         <xsl:param name="row-id"/>
-
         <xsl:choose>
-            <xsl:when test="$column-number eq 3">
-                <unitid>
+         
+          <!-- KS moved the containers up here -->
+            <xsl:when test="$column-number eq 22">
+                <!-- label should be column 18.  If empty, though, just choose Mixed materials / KS changed to leave out -->
+                <xsl:variable name="instance_type"
+                    select="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'instance_type']/ss:Data"/>
+                <xsl:variable name="barcode"
+                    select="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'barcode']/ss:Data"/>
+                <!-- KS removed automated ID generation -->
+                <container>
+                    <!--<xsl:attribute name="label">
+                        <xsl:value-of
+                            select="
+                                if ($barcode ne '') then
+                                    concat($instance_type, ' [', $barcode, ']')
+                                else
+                                    $instance_type"
+                        />
+                    </xsl:attribute>-->
+                    <xsl:attribute name="type">
+                        <xsl:value-of
+                            select="
+                            if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_1_type'][ss:Data[normalize-space()]])
+                            then
+                            preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_1_type']/ss:Data
+                            else
+                            'box'"
+                        />
+                    </xsl:attribute>
+                    <xsl:if
+                        test="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_profile'][ss:Data[normalize-space()]]">
+                        <xsl:attribute name="altrender">
+                            <xsl:value-of
+                                select="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_profile']/ss:Data"
+                            />
+                        </xsl:attribute>
+                    </xsl:if>
                     <xsl:apply-templates/>
-                </unitid>
+                </container>
+            </xsl:when>
+            
+            <xsl:when test="$column-number eq 24">
+                <!--           KS removed parent id      -->
+                <container>
+                    <xsl:attribute name="type">
+                        <xsl:value-of
+                            select="
+                            if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_2_type'][ss:Data[normalize-space()]])
+                            then
+                            preceding-sibling::ss:Cell[1]/ss:Data
+                            else
+                            'folder'"
+                        />
+                    </xsl:attribute>
+                    <xsl:apply-templates/>
+                </container>
+            </xsl:when>
+            
+            <xsl:when test="$column-number eq 26">
+                <container parent="{$row-id}">
+                    <xsl:attribute name="type">
+                        <xsl:value-of
+                            select="
+                            if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_3_type'][ss:Data[normalize-space()]])
+                            then
+                            preceding-sibling::ss:Cell[1]/ss:Data
+                            else
+                            'Carton'"
+                        />
+                    </xsl:attribute>
+                    <xsl:apply-templates/>
+                </container>
             </xsl:when>
             <xsl:when test="$column-number eq 4">
                 <unittitle>
+                  <!-- KS added component id to id attribute here -->
+                  <xsl:if
+                  test="following-sibling::ss:Cell[ss:NamedCell[@ss:Name='component_id']]/ss:Data != ''">
+                  
+                    <xsl:attribute name="id">
+                      <xsl:value-of select="following-sibling::ss:Cell[ss:NamedCell[@ss:Name='component_id']]/ss:Data"/>
+                    </xsl:attribute>
+                    </xsl:if>
                     <xsl:choose>
                         <!-- 1st test checks to see if the current Cell has a style ID that would indicate that the font is supposed to be red -->
                         <!-- the second test makes sure that the cell and the data don't both have the RED font color specified.  without the "not" statement, two nested title elements might appear in the output. -->
+                        <!-- KS added style-based test for bold, italic, and underline, to address the issue where excel moves those to a style -->
+                      <xsl:when test="key('style-ids_match-for-color', $style-id)/ss:Font/@ss:Underline">
+                        <emph render="underline">
+                          <xsl:apply-templates/>
+                        </emph>
+                      </xsl:when>
+                      <xsl:when test="key('style-ids_match-for-color', $style-id)/ss:Font/@ss:Bold">
+                        <emph render="bold">
+                          <xsl:apply-templates/>
+                        </emph>
+                      </xsl:when>
+                      <xsl:when test="key('style-ids_match-for-color', $style-id)/ss:Font/@ss:Italic">
+                        <emph render="italic">
+                          <xsl:apply-templates/>
+                        </emph>
+                      </xsl:when>
                         <xsl:when
                             test="
                                 key('style-ids_match-for-color', $style-id)/ss:Font/@ss:Color = '#FF0000'
@@ -454,7 +564,10 @@ recheck how origination names are parsed (multiples AND font colors)
                                 <xsl:apply-templates/>
                             </famname>
                         </xsl:when>
+                      
+                      
                         <xsl:otherwise>
+
                             <xsl:apply-templates/>
                         </xsl:otherwise>
                     </xsl:choose>
@@ -665,85 +778,24 @@ recheck how origination names are parsed (multiples AND font colors)
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:attribute>
+<!-- KS added bulk date expression derived from variables, years only -->
+                  <xsl:text>bulk </xsl:text>
+                  <xsl:choose>
+                    <xsl:when
+                      test="$bulk-year-end != ''">
+                  <xsl:value-of select="concat($bulk-year-begin,'-',$bulk-year-end)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                      <xsl:value-of
+                        select="$bulk-year-begin"
+                      />
+                    </xsl:otherwise>
+                    </xsl:choose>
                 </unitdate>
             </xsl:when>
 
 
-            <xsl:when test="$column-number eq 22">
-                <!-- label should be column 18.  If empty, though, just choose Mixed materials-->
-                <xsl:variable name="instance_type"
-                    select="
-                        if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'instance_type'][ss:Data[normalize-space()]])
-                        then
-                            preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'instance_type']/ss:Data
-                        else
-                            'Mixed materials'"/>
-                <xsl:variable name="barcode"
-                    select="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'barcode']/ss:Data"/>
-
-                <container id="{$row-id}">
-                    <xsl:attribute name="label">
-                        <xsl:value-of
-                            select="
-                                if ($barcode ne '') then
-                                    concat($instance_type, ' [', $barcode, ']')
-                                else
-                                    $instance_type"
-                        />
-                    </xsl:attribute>
-                    <xsl:attribute name="type">
-                        <xsl:value-of
-                            select="
-                                if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_1_type'][ss:Data[normalize-space()]])
-                                then
-                                preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_1_type']/ss:Data
-                                else
-                                    'Box'"
-                        />
-                    </xsl:attribute>
-                    <xsl:if
-                        test="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_profile'][ss:Data[normalize-space()]]">
-                        <xsl:attribute name="altrender">
-                            <xsl:value-of
-                                select="preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_profile']/ss:Data"
-                            />
-                        </xsl:attribute>
-                    </xsl:if>
-                    <xsl:apply-templates/>
-                </container>
-            </xsl:when>
-
-            <xsl:when test="$column-number eq 24">
-                <container parent="{$row-id}">
-                    <xsl:attribute name="type">
-                        <xsl:value-of
-                            select="
-                                if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_2_type'][ss:Data[normalize-space()]])
-                                then
-                                    preceding-sibling::ss:Cell[1]/ss:Data
-                                else
-                                    'Folder'"
-                        />
-                    </xsl:attribute>
-                    <xsl:apply-templates/>
-                </container>
-            </xsl:when>
-
-            <xsl:when test="$column-number eq 26">
-                <container parent="{$row-id}">
-                    <xsl:attribute name="type">
-                        <xsl:value-of
-                            select="
-                                if (preceding-sibling::ss:Cell[ss:NamedCell/@ss:Name = 'container_3_type'][ss:Data[normalize-space()]])
-                                then
-                                    preceding-sibling::ss:Cell[1]/ss:Data
-                                else
-                                    'Carton'"
-                        />
-                    </xsl:attribute>
-                    <xsl:apply-templates/>
-                </container>
-            </xsl:when>
+<!--           KS moved container up -->
 
             <xsl:when test="$column-number eq 28">
                 <physdesc>
@@ -918,7 +970,8 @@ recheck how origination names are parsed (multiples AND font colors)
         <xsl:choose>
             <xsl:when test="$element-name eq 'nada' or normalize-space(.) eq ''"/>
             <xsl:otherwise>
-                <xsl:element name="{$element-name}" namespace="urn:isbn:1-931666-22-9">
+<!-- KS removed namesapace              -->
+                <xsl:element name="{$element-name}">
                     <xsl:apply-templates>
                         <xsl:with-param name="column-number" select="$column-number" as="xs:integer"/>
                         <xsl:with-param name="style-id" select="$style-id"/>
@@ -935,6 +988,7 @@ recheck how origination names are parsed (multiples AND font colors)
         <xsl:choose>
             <!-- hack way to deal with adding <head> elements for scope and content and other types of notes.-->
             <!-- also gotta check style ids, since if you re-save an Excel file, it'll strip the font element out and replace it with an ID :( -->
+          <!-- KS above, with the color test, added style-based test for bold, italic, and underline, to address the issue where excel moves those to a style -->
             <xsl:when test="starts-with(*[2], '&#10;') and not(html:Font[1]/@html:Size eq '14')">
                 <head>
                     <xsl:apply-templates select="*[1]"/>
@@ -954,7 +1008,8 @@ recheck how origination names are parsed (multiples AND font colors)
                     <xsl:apply-templates select="node() except text()[1]"/>
                 </p>
             </xsl:when>
-            
+         
+           
             <xsl:when test="starts-with(text()[1], '&#10;')">
                 <xsl:apply-templates select="text()[1]"/>
                 <p>
