@@ -1,5 +1,14 @@
 Excel-to-DSC
 ============
+
+This is a modified version of the main branch, tweaked for the Center for Jewish History's EAD stylesheets.  
+
+Changes are summarized in the comments of the XSL.
+
+The Word doc provides set up instructions.
+
+---
+
 Use the attached Excel file to create an EAD container list. The process supports creating controlled vocabularies, mixed-content elements (such as title, persname, emph elements, etc.), date elements with ISO-8601 date normalizations, and a hierarchy up to 12 levels deep. Any of the column values may also be repeated now -- resulting in multiple unitdate values at any level of description, for instance -- by adding a new row and setting its level equal to 0.
 
 To get started:
