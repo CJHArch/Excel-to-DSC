@@ -5,6 +5,7 @@
     version="2.0">
     <!--copy everything-->
 <!-- KS 20150831 This stylesheet takes the output from the Excel-to-DSC_CJH xsl and moves up the container to before the did -->
+  
   <xsl:output omit-xml-declaration="yes"/>
     <xsl:template match="@* | node()">
         <xsl:copy>
@@ -19,4 +20,15 @@
             <xsl:apply-templates select="* except container"/> <!-- process everything else -->
         </xsl:copy>
     </xsl:template>
+  
+  <xsl:template match="*[@level='otherlevel']">
+    <xsl:copy>
+      <xsl:attribute name="otherlevel">section</xsl:attribute> 
+      <xsl:apply-templates select="@*|comment()"/>
+      <xsl:apply-templates select="container"/>  <!-- bring the containers to the top -->
+      <xsl:apply-templates select="* except container"/> <!-- process everything else -->
+    </xsl:copy>
+  </xsl:template>
+
+  
 </xsl:stylesheet>
